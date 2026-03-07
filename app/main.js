@@ -4,9 +4,9 @@ const gameState = {
   selectedCardId: null,
   running: false,
   score: 0,
-  coins: 0, // Monedas acumuladas desde partidas anteriores
-  coinsMilestone: 0, // Milestone interno para premios grandes (cada 1000 pts)
-  coinsFromScore: 0, // Acumulador para convertir puntos a monedas de forma lineal
+  coins: 0,
+  coinsMilestone: 0,
+  coinsFromScore: 0,
   albums: [],
   enemies: [],
   bullets: [],
@@ -63,7 +63,6 @@ function getAlbumById(id) {
 function saveAlbumsAndRender() {
   saveAlbums();
   const container = document.getElementById('albums');
-  // Evitar sobrescribir la vista de álbum cuando se está dentro de ella.
   if (container && !container.classList.contains('album-view')) {
     renderAlbumsSection();
   }
@@ -137,18 +136,12 @@ function addScore(points) {
 }
 
 function updateCoinsFromScore() {
-  // Convertimos puntaje a monedas:
-  // Cada 100 puntos da 20 monedas, proporcionalmente.
-  // Ej: 10 puntos = 2 monedas, 55 puntos = 11 monedas.
   const totalCoinsFromScore = Math.floor(gameState.score * 0.2);
-
   const delta = totalCoinsFromScore - (gameState.coinsFromScore || 0);
   if (delta <= 0) return;
-
   gameState.coins += delta;
   gameState.coinsFromScore = totalCoinsFromScore;
-  gameState.coinsMilestone = Math.floor(gameState.score / 100); // Mantener referencia (cada 100 puntos)
-
+  gameState.coinsMilestone = Math.floor(gameState.score / 100);
   saveCoins();
   updateCoinDisplay();
 }
@@ -176,8 +169,6 @@ function hpForRarity(rarity) {
 }
 
 function damageForRarity(rarity) {
-  // El daño se escala proporcionalmente a la rareza de la carta nave.
-  // Usamos la misma progresión que `hpForRarity` para tener una relación clara.
   const hp = hpForRarity(rarity);
   return Math.max(10, Math.floor(hp * 0.2));
 }
@@ -205,12 +196,10 @@ function selectPlayerCard(cardId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Punto de entrada: inicializa la UI y el estado del juego
   init();
 });
 
 function init() {
-  // Crear contenedores básicos si no existen
   let app = document.getElementById('app');
   if (!app) {
     app = document.createElement('div');
@@ -221,16 +210,9 @@ function init() {
   loadCoins();
   loadAlbums();
 
-  // Estado del banner de bienvenida (una sola multi gratis)
   gameState.bienvenidaUsed = localStorage.getItem('juegoCartasBienvenidaUsed') === 'true';
+  gameState.pity = { general: 0, jeffreyMissed: false };
 
-  // Contadores de pity para banners
-  gameState.pity = {
-    general: 0,
-    jeffreyMissed: false,
-  };
-
-  // Cabecera y botón para barajar/repartir
   const header = document.createElement('h1');
   header.textContent = 'Juego de Cartas';
   app.appendChild(header);
@@ -242,7 +224,6 @@ function init() {
   updateCoinDisplay();
   updatePityDisplay();
 
-  // Navegación: botones para ir a "Abrir sobres", "Colección" o "Jugar"
   const nav = document.createElement('div');
   nav.className = 'nav';
   const btnOpen = document.createElement('button');
@@ -265,21 +246,19 @@ function init() {
   nav.appendChild(btnCollection);
   nav.appendChild(btnPlay);
   app.appendChild(nav);
-  // Layout: izquierda abrir sobres, centro jugar, derecha colección
+
   const layout = document.createElement('div');
   layout.className = 'layout';
 
   const left = document.createElement('div');
   left.className = 'left';
 
-  // Área central para el minijuego
   const center = document.createElement('div');
   center.className = 'center';
 
   const right = document.createElement('div');
   right.className = 'right';
 
-  // Controles para apertura de sobres (izquierda)
   const controls = document.createElement('div');
   controls.className = 'controls';
 
@@ -314,7 +293,6 @@ function init() {
   multiBtn.textContent = 'Multi (50 cartas) - 1600 monedas';
   multiBtn.addEventListener('click', () => onOpenPack({ count: 50, cost: 1600 }));
 
-  // Desactivar por defecto hasta que las cartas JSON se carguen
   singleBtn.disabled = true;
   multiBtn.disabled = true;
 
@@ -329,18 +307,15 @@ function init() {
   controls.appendChild(multiBtn);
   controls.appendChild(pityInfo);
 
-  // Área donde se mostrarán las cartas del sobre (izquierda)
   const board = document.createElement('div');
   board.id = 'board';
 
   left.appendChild(controls);
   left.appendChild(board);
 
-  // Área de colección del jugador (derecha)
   const colHeader = document.createElement('h2');
   colHeader.textContent = 'Colección';
 
-  // Tabs para ver cartas o álbumes
   const tabs = document.createElement('div');
   tabs.className = 'collection-tabs';
 
@@ -359,7 +334,6 @@ function init() {
   tabs.appendChild(tabCards);
   tabs.appendChild(tabAlbums);
 
-  // Controles de colección (filtro por rareza)
   const collectionControls = document.createElement('div');
   collectionControls.className = 'collection-controls';
   const filterLabel = document.createElement('label');
@@ -397,11 +371,8 @@ function init() {
 
   initPlaySection(center);
   setCollectionTab('cards');
-
-  // Mostrar solo la sección de abrir sobres al iniciar
   showSection('left');
 
-  // Botón fijo para reiniciar el juego (borrar progreso)
   const resetBtn = document.createElement('button');
   resetBtn.id = 'resetGameBtn';
   resetBtn.className = 'btn reset-btn';
@@ -413,7 +384,6 @@ function init() {
   resetBtn.addEventListener('click', resetGame);
   document.body.appendChild(resetBtn);
 
-  // Habilitar botones cuando la carga de cartas finalice
   const enablePackButtons = () => {
     const singleBtn = document.getElementById('openSingleBtn');
     const multiBtn = document.getElementById('openMultiBtn');
@@ -423,7 +393,6 @@ function init() {
 
   if (window.cards && window.cards.ready && typeof window.cards.ready.then === 'function') {
     window.cards.ready.then(() => {
-      // Si no hay monedas al inicio, damos un pequeño saldo inicial para poder abrir el primer sobre.
       const coll = window.cards.getCollection ? window.cards.getCollection() : {};
       const hasCards = coll && Object.keys(coll).length > 0;
       if (!hasCards && gameState.coins <= 0) {
@@ -431,14 +400,11 @@ function init() {
         saveCoins();
         updateCoinDisplay();
       }
-
       enablePackButtons();
     }).catch(() => {
-      // Si falla la carga, dejarlo deshabilitado y mostrar aviso en consola
       console.error('No se pudieron cargar las cartas desde JSON.');
     });
   } else {
-    // Si no existe la promesa, habilitar por seguridad
     enablePackButtons();
   }
 }
@@ -458,7 +424,6 @@ function showSection(which) {
   }
   if (which === 'play') updatePlaySelectionUI();
 
-  // Marcar botón activo
   const btnOpen = document.getElementById('nav-open');
   const btnCollection = document.getElementById('nav-collection');
   const btnPlay = document.getElementById('nav-play');
@@ -474,7 +439,6 @@ function onOpenPack(opts = {}) {
   let count = opts.count || 5;
   let cost = opts.cost || 160;
 
-  // Banner bienvenida: una sola multi gratis.
   if (banner === 'bienvenida' && !gameState.bienvenidaUsed) {
     count = 50;
     cost = 0;
@@ -498,16 +462,14 @@ function onOpenPack(opts = {}) {
 
   const opened = window.cards.openPack({ count, banner, pity: gameState.pity });
 
-  // Usar cardsViews para renderizar las cartas
   if (window.cardsView && window.cardsView.renderCardSet) {
     window.cardsView.renderCardSet(opened, board);
   } else {
-    // Fallback si cardsViews no está disponible
     board.innerHTML = '';
     opened.forEach(c => {
       const el = document.createElement('div');
       el.className = 'card ' + c.rarity;
-      
+
       if (c.image) {
         const img = document.createElement('img');
         img.src = c.image;
@@ -515,22 +477,22 @@ function onOpenPack(opts = {}) {
         img.className = 'card-image';
         el.appendChild(img);
       }
-      
+
       const textContainer = document.createElement('div');
       textContainer.className = 'card-text';
-      
+
       const title = document.createElement('div');
       title.className = 'card-title';
       title.textContent = c.name;
-      
+
       const sub = document.createElement('div');
       sub.className = 'card-sub';
       sub.textContent = c.rarity;
-      
+
       const desc = document.createElement('div');
       desc.className = 'card-description';
       desc.textContent = c.description || '';
-      
+
       textContainer.appendChild(title);
       textContainer.appendChild(sub);
       textContainer.appendChild(desc);
@@ -542,7 +504,6 @@ function onOpenPack(opts = {}) {
   if (banner === 'bienvenida' && !gameState.bienvenidaUsed) {
     gameState.bienvenidaUsed = true;
     saveBienvenidaUsed();
-    // Quitar la opción para que no se pueda reutilizar
     const bannerSelect = document.getElementById('bannerType');
     if (bannerSelect) {
       const opt = bannerSelect.querySelector('option[value="bienvenida"]');
@@ -589,9 +550,6 @@ function renderAlbumsSection() {
 
   container.appendChild(header);
 
-  const list = document.createElement('div');
-  list.className = 'album-list';
-
   const albums = gameState.albums || [];
   if (albums.length === 0) {
     const empty = document.createElement('p');
@@ -600,6 +558,9 @@ function renderAlbumsSection() {
     container.appendChild(empty);
     return;
   }
+
+  const list = document.createElement('div');
+  list.className = 'album-list';
 
   albums.forEach(album => {
     const card = document.createElement('div');
@@ -652,146 +613,183 @@ function renderAlbumsSection() {
   container.appendChild(list);
 }
 
+// ── Abre el álbum como overlay de pantalla completa ──
 function openAlbumView(albumId) {
   const album = getAlbumById(albumId);
   if (!album) return;
 
-  const container = document.getElementById('albums');
-  if (!container) return;
+  // Eliminar overlay previo si existe
+  const prev = document.getElementById('albumOverlay');
+  if (prev) prev.remove();
 
-  // Convert the albums panel into a full-size overlay view for this album
-  container.classList.add('album-view');
+  // Crear overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'albumOverlay';
+  overlay.className = 'album-fullscreen-overlay';
+  overlay.style.setProperty('--album-bg', album.background || '#070b1a');
 
-  container.innerHTML = '';
-  container.style.background = album.background || 'transparent';
+  // Capa de fondo decorativa
+  const bgLayer = document.createElement('div');
+  bgLayer.className = 'album-bg-layer';
+  overlay.appendChild(bgLayer);
 
-  let cleanBtn = null;
-  const cleanExit = document.createElement('button');
-  cleanExit.className = 'clean-exit';
-  cleanExit.textContent = 'Cerrar';
-  cleanExit.style.display = 'none';
-  cleanExit.addEventListener('click', () => {
-    container.classList.remove('album-view-clean');
-    if (cleanBtn) cleanBtn.textContent = 'Ver solo';
-    cleanExit.style.display = 'none';
-  });
-  container.appendChild(cleanExit);
-
+  // Header
   const header = document.createElement('div');
-  header.className = 'albums-header';
+  header.className = 'album-fs-header';
 
   const backBtn = document.createElement('button');
-  backBtn.className = 'btn';
+  backBtn.className = 'btn album-fs-back';
   backBtn.textContent = '← Volver';
   backBtn.addEventListener('click', () => {
-    container.style.background = '';
-    container.classList.remove('album-view', 'album-view-clean');
-    renderAlbumsSection();
+    document.body.style.overflow = '';
+    overlay.classList.add('album-fs-exit');
+    overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
   });
   header.appendChild(backBtn);
 
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'album-fs-title-wrap';
+
   const title = document.createElement('h2');
+  title.className = 'album-fs-title';
   title.textContent = album.name || 'Álbum sin nombre';
-  header.appendChild(title);
+  titleWrap.appendChild(title);
+
+  const meta = document.createElement('span');
+  meta.className = 'album-fs-meta';
+  meta.textContent = `${(album.cardIds || []).length} / 20 cartas`;
+  titleWrap.appendChild(meta);
+
+  header.appendChild(titleWrap);
+
+  const headerActions = document.createElement('div');
+  headerActions.className = 'album-fs-actions';
 
   const editBtn = document.createElement('button');
   editBtn.className = 'btn';
   editBtn.textContent = 'Editar álbum';
   editBtn.addEventListener('click', () => openAlbumEditor(albumId));
-  header.appendChild(editBtn);
+  headerActions.appendChild(editBtn);
 
-  cleanBtn = document.createElement('button');
-  cleanBtn.className = 'btn';
-  cleanBtn.textContent = 'Ver solo';
-  let cleanMode = false;
-  cleanBtn.addEventListener('click', () => {
-    cleanMode = !cleanMode;
-    container.classList.toggle('album-view-clean', cleanMode);
-    cleanBtn.textContent = cleanMode ? 'Salir ver solo' : 'Ver solo';
-    const cleanExit = container.querySelector('.clean-exit');
-    if (cleanExit) cleanExit.style.display = cleanMode ? 'block' : 'none';
-  });
-  header.appendChild(cleanBtn);
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn';
+  addBtn.textContent = '+ Añadir cartas';
+  addBtn.disabled = (album.cardIds || []).length >= 20;
+  addBtn.addEventListener('click', () => openAddCardsModal(albumId));
+  headerActions.appendChild(addBtn);
 
-  container.appendChild(header);
+  header.appendChild(headerActions);
+  overlay.appendChild(header);
 
+  // Tabs
   const tabBar = document.createElement('div');
-  tabBar.className = 'collection-tabs';
+  tabBar.className = 'album-fs-tabs';
 
   const tabCards = document.createElement('button');
   tabCards.className = 'tab-btn active';
+  tabCards.dataset.tab = 'cards';
   tabCards.textContent = 'Cartas';
-  tabCards.addEventListener('click', () => setAlbumViewTab('cards', album));
 
-  const tabBackground = document.createElement('button');
-  tabBackground.className = 'tab-btn';
-  tabBackground.textContent = 'Fondo';
-  tabBackground.addEventListener('click', () => setAlbumViewTab('background', album));
+  const tabBg = document.createElement('button');
+  tabBg.className = 'tab-btn';
+  tabBg.dataset.tab = 'background';
+  tabBg.textContent = 'Fondo';
 
   tabBar.appendChild(tabCards);
-  tabBar.appendChild(tabBackground);
-  container.appendChild(tabBar);
+  tabBar.appendChild(tabBg);
+  overlay.appendChild(tabBar);
 
+  // Contenido
   const content = document.createElement('div');
-  content.id = 'albumViewContent';
-  container.appendChild(content);
+  content.id = 'albumFsContent';
+  content.className = 'album-fs-content';
+  overlay.appendChild(content);
 
-  setAlbumViewTab('cards', album);
+  function setTab(tab) {
+    tabBar.querySelectorAll('.tab-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === tab)
+    );
+    renderFsTab(tab, album, content, overlay);
+  }
+
+  tabCards.addEventListener('click', () => setTab('cards'));
+  tabBg.addEventListener('click', () => setTab('background'));
+
+  // Montar en body y animar
+  document.body.appendChild(overlay);
+
+  // Bloquear scroll del body
+  document.body.style.overflow = 'hidden';
+
+  // Render inicial
+  setTab('cards');
 }
 
-function setAlbumViewTab(tab, album) {
-  const container = document.getElementById('albums');
-  if (!container) return;
-
-  const content = document.getElementById('albumViewContent');
-  if (!content) return;
-
-  const tabBtns = container.querySelectorAll('.collection-tabs .tab-btn');
-  tabBtns.forEach(btn => btn.classList.toggle('active', btn.textContent.toLowerCase() === tab));
-
+// ── Renderiza el contenido de cada tab dentro del overlay ──
+function renderFsTab(tab, album, content, overlay) {
   content.innerHTML = '';
 
   if (tab === 'cards') {
-    const meta = document.createElement('div');
-    meta.className = 'album-meta-row';
-    meta.textContent = `Fondo: ${album.background || 'ninguno'} • ${album.cardIds.length} / 20 cartas`;
-    content.appendChild(meta);
+    if ((album.cardIds || []).length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'album-fs-empty';
+      empty.innerHTML = '<span>📭</span><p>No hay cartas en este álbum todavía.</p>';
+      content.appendChild(empty);
+      return;
+    }
 
-    const addBtn = document.createElement('button');
-    addBtn.className = 'btn';
-    addBtn.textContent = 'Añadir cartas';
-    addBtn.disabled = (album.cardIds || []).length >= 20;
-    addBtn.addEventListener('click', () => openAddCardsModal(album.id));
-    content.appendChild(addBtn);
-
-    const list = document.createElement('div');
-    list.className = 'album-cards';
+    const grid = document.createElement('div');
+    grid.className = 'album-fs-grid';
 
     (album.cardIds || []).forEach((cardId, index) => {
       const card = getCardById(cardId);
       const item = document.createElement('div');
-      item.className = 'album-card-item';
+      item.className = 'album-fs-card';
+      if (card && card.rarity) item.classList.add('glow-' + card.rarity);
 
-      const info = document.createElement('div');
-      info.className = 'album-card-info';
-
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'album-fs-card-img-wrap';
       if (card && card.image) {
         const img = document.createElement('img');
         img.src = card.image;
-        img.alt = card.name;
-        img.className = 'album-card-thumb';
-        info.appendChild(img);
+        img.alt = card.name || '';
+        img.className = 'album-fs-card-img';
+        imgWrap.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'album-fs-card-placeholder';
+        ph.textContent = '🃏';
+        imgWrap.appendChild(ph);
       }
 
-      const text = document.createElement('div');
-      text.className = 'album-card-text';
-      text.textContent = (card && card.name) ? card.name : 'Carta desconocida';
-      info.appendChild(text);
+      if (card && card.rarity) {
+        const badge = document.createElement('span');
+        badge.className = 'rarity-banner ' + card.rarity;
+        badge.textContent = card.rarity.toUpperCase();
+        imgWrap.appendChild(badge);
+      }
+
+      item.appendChild(imgWrap);
+
+      const info = document.createElement('div');
+      info.className = 'album-fs-card-info';
+
+      const name = document.createElement('div');
+      name.className = 'album-fs-card-name';
+      name.textContent = (card && card.name) ? card.name : 'Carta desconocida';
+      info.appendChild(name);
+
+      if (card && card.description) {
+        const desc = document.createElement('div');
+        desc.className = 'album-fs-card-desc';
+        desc.textContent = card.description;
+        info.appendChild(desc);
+      }
 
       item.appendChild(info);
 
       const controls = document.createElement('div');
-      controls.className = 'album-card-controls';
+      controls.className = 'album-fs-card-controls';
 
       const up = document.createElement('button');
       up.className = 'btn btn-small';
@@ -801,7 +799,7 @@ function setAlbumViewTab(tab, album) {
         const ids = album.cardIds;
         [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
         updateAlbum(album);
-        setAlbumViewTab('cards', album);
+        renderFsTab('cards', album, content, overlay);
       });
       controls.appendChild(up);
 
@@ -813,58 +811,70 @@ function setAlbumViewTab(tab, album) {
         const ids = album.cardIds;
         [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]];
         updateAlbum(album);
-        setAlbumViewTab('cards', album);
+        renderFsTab('cards', album, content, overlay);
       });
       controls.appendChild(down);
 
       const remove = document.createElement('button');
-      remove.className = 'btn btn-small delete';
-      remove.textContent = 'Eliminar';
+      remove.className = 'btn btn-small';
+      remove.style.background = 'rgba(239,68,68,0.25)';
+      remove.style.borderColor = 'rgba(239,68,68,0.5)';
+      remove.textContent = '✕';
       remove.addEventListener('click', () => {
         album.cardIds = album.cardIds.filter(id => id !== cardId);
         updateAlbum(album);
-        setAlbumViewTab('cards', album);
+        renderFsTab('cards', album, content, overlay);
+        const metaEl = overlay.querySelector('.album-fs-meta');
+        if (metaEl) metaEl.textContent = `${album.cardIds.length} / 20 cartas`;
       });
       controls.appendChild(remove);
 
       item.appendChild(controls);
-      list.appendChild(item);
+      grid.appendChild(item);
     });
 
-    content.appendChild(list);
-  }
+    content.appendChild(grid);
 
-  if (tab === 'background') {
-    const info = document.createElement('p');
-    info.textContent = 'Configura el fondo y el nombre del álbum.';
-    content.appendChild(info);
+  } else if (tab === 'background') {
+    const form = document.createElement('div');
+    form.className = 'album-fs-form';
 
     const nameLabel = document.createElement('label');
-    nameLabel.textContent = 'Nombre del álbum:';
+    nameLabel.className = 'album-fs-form-label';
+    nameLabel.textContent = 'Nombre del álbum';
     const nameInput = document.createElement('input');
     nameInput.type = 'text';
     nameInput.value = album.name || '';
+    nameInput.className = 'album-input';
     nameLabel.appendChild(nameInput);
-    content.appendChild(nameLabel);
+    form.appendChild(nameLabel);
 
     const bgLabel = document.createElement('label');
-    bgLabel.textContent = 'Color de fondo:';
+    bgLabel.className = 'album-fs-form-label';
+    bgLabel.textContent = 'Color de fondo';
     const bgInput = document.createElement('input');
     bgInput.type = 'color';
-    bgInput.value = album.background || '#ffffff';
+    bgInput.value = album.background || '#070b1a';
     bgLabel.appendChild(bgInput);
-    content.appendChild(bgLabel);
+    form.appendChild(bgLabel);
+
+    bgInput.addEventListener('input', () => {
+      overlay.style.setProperty('--album-bg', bgInput.value);
+    });
 
     const saveBtn = document.createElement('button');
     saveBtn.className = 'btn';
-    saveBtn.textContent = 'Guardar';
+    saveBtn.textContent = 'Guardar cambios';
     saveBtn.addEventListener('click', () => {
       album.name = nameInput.value.trim() || album.name;
       album.background = bgInput.value;
       updateAlbum(album);
-      setAlbumViewTab('background', album);
+      const titleEl = overlay.querySelector('.album-fs-title');
+      if (titleEl) titleEl.textContent = album.name;
     });
-    content.appendChild(saveBtn);
+    form.appendChild(saveBtn);
+
+    content.appendChild(form);
   }
 }
 
@@ -910,7 +920,6 @@ function openAlbumEditor(albumId) {
       alert('Elige un nombre para el álbum.');
       return;
     }
-
     if (isNew) {
       const created = createAlbum(name, bg);
       openAlbumView(created.id);
@@ -920,7 +929,6 @@ function openAlbumEditor(albumId) {
       updateAlbum(album);
       openAlbumView(album.id);
     }
-
     closeModal(modal);
   });
 
@@ -972,11 +980,9 @@ function openAddCardsModal(albumId) {
       cb.type = 'checkbox';
       cb.value = e.card.id;
       row.appendChild(cb);
-
       const name = document.createElement('span');
       name.textContent = `${e.card.name} (${e.card.rarity})`;
       row.appendChild(name);
-
       list.appendChild(row);
     });
     dialog.appendChild(list);
@@ -1029,17 +1035,14 @@ function updateCollectionDisplay() {
   const filterEl = document.getElementById('collectionFilter');
   const filter = filterEl ? filterEl.value : 'all';
 
-  // Usar cardsViews para renderizar la colección
   if (window.cardsView && window.cardsView.renderCollection) {
     window.cardsView.renderCollection(coll, container, filter);
 
-    // Resaltar la carta seleccionada en la colección
     if (gameState.selectedCardId) {
       const selectedEl = container.querySelector(`[data-card-id="${gameState.selectedCardId}"]`);
       if (selectedEl) selectedEl.classList.add('selected-in-collection');
     }
 
-    // Hacer que la lista sea interactiva para seleccionar la nave
     container.querySelectorAll('[data-card-id]').forEach(el => {
       el.style.cursor = 'pointer';
       el.addEventListener('click', () => {
@@ -1050,16 +1053,14 @@ function updateCollectionDisplay() {
     return;
   }
 
-  // Fallback si cardsViews no está disponible
   container.innerHTML = '';
-  
+
   let entries = Object.values(coll);
   if (entries.length === 0) {
     container.textContent = 'Colección vacía. Abre sobres para obtener cartas.';
     return;
   }
 
-  // Aplicar filtro si hay select
   if (filter && filter !== 'all') {
     entries = entries.filter(e => e.card.rarity === filter);
   }
@@ -1069,8 +1070,8 @@ function updateCollectionDisplay() {
     return;
   }
 
-  const list = document.createElement('ul');
-  list.className = 'collection-list';
+  const listEl = document.createElement('ul');
+  listEl.className = 'collection-list';
   entries.forEach(e => {
     const li = document.createElement('li');
     li.className = 'collection-item ' + e.card.rarity;
@@ -1102,9 +1103,9 @@ function updateCollectionDisplay() {
       li.classList.add('selected-in-collection');
     }
 
-    list.appendChild(li);
+    listEl.appendChild(li);
   });
-  container.appendChild(list);
+  container.appendChild(listEl);
 }
 
 function getCardFromCollection(cardId) {
@@ -1243,11 +1244,8 @@ function startGame() {
   const selected = getSelectedCard();
   if (!selected) return;
 
-  // Guardar monedas al inicio para mostrar ganancia al terminar
   gameState.startCoins = gameState.coins;
-
   gameState.running = true;
-  // Resetear controles de teclado para evitar que una tecla quede "pegada" entre partidas.
   gameState.keys = { left: false, right: false, fire: false };
   gameState.score = 0;
   gameState.coinsMilestone = 0;
@@ -1257,7 +1255,6 @@ function startGame() {
   gameState.lastFrame = performance.now();
   gameState.spawnTimer = 0;
 
-  // Vida de la carta nave
   const selectedCard = getSelectedCard();
   const playerHp = hpForRarity(selectedCard && selectedCard.rarity);
   gameState.playerMaxHp = playerHp;
@@ -1280,7 +1277,6 @@ function stopGame() {
   if (gameState.rafId) cancelAnimationFrame(gameState.rafId);
   gameState.rafId = null;
 
-  // Mostrar resumen de monedas ganadas en esta partida
   const start = typeof gameState.startCoins === 'number' ? gameState.startCoins : 0;
   const gained = Math.max(0, (gameState.coins || 0) - start);
   alert(`Partida finalizada. Has ganado ${gained} monedas.`);
@@ -1299,14 +1295,11 @@ function resetGame() {
 function gameLoop(timestamp) {
   if (!gameState.running) return;
 
-  // A veces el timestamp puede ser igual o menor que el último frame (p.ej. al volver de otra pestaña),
-  // lo cual podría generar delta <= 0 y detener el movimiento, dando la sensación de "pillado".
   const rawDelta = (timestamp - gameState.lastFrame) / 1000;
   const delta = Math.min(0.05, Math.max(0, rawDelta));
   gameState.lastFrame = timestamp;
 
   if (delta <= 0) {
-    // No hay tiempo transcurrido válido, seguir al siguiente frame.
     gameState.rafId = requestAnimationFrame(gameLoop);
     return;
   }
@@ -1326,8 +1319,6 @@ function gameLoop(timestamp) {
 function updateGame(delta) {
   const canvas = gameState.canvas;
   const ctx = gameState.ctx;
-  // Si por alguna razón el canvas se elimina (cambio de sección o recarga parcial), detenemos el juego
-  // para evitar bucles infinitos y consumo de CPU.
   if (!canvas || !ctx || !canvas.isConnected) {
     stopGame();
     return;
@@ -1344,11 +1335,9 @@ function updateGame(delta) {
     }
   }
 
-  // Mover balas
   gameState.bullets = gameState.bullets.filter(b => b.y > -10);
   gameState.bullets.forEach(b => { b.y -= b.speed * delta; });
 
-  // Enemigos
   gameState.spawnTimer += delta;
   if (gameState.spawnTimer > 1) {
     gameState.spawnTimer = 0;
@@ -1356,27 +1345,18 @@ function updateGame(delta) {
     if (enemy) gameState.enemies.push(enemy);
   }
 
-  gameState.enemies.forEach(e => {
-    e.y += e.speed * delta;
-  });
+  gameState.enemies.forEach(e => { e.y += e.speed * delta; });
 
-  // Colisiones: balas vs enemigos + jugador vs enemigos
   const now = performance.now();
-  const playerRect = {
-    x: gameState.playerX || 0,
-    y: canvas.height - 60,
-    w: 44,
-    h: 44,
-  };
+  const playerRect = { x: gameState.playerX || 0, y: canvas.height - 60, w: 44, h: 44 };
 
   gameState.enemies = gameState.enemies.filter(enemy => {
-    // Off-screen
     if (enemy.y > canvas.height + 40) return false;
 
-    // Impacto con la nave del jugador
     if (now - (gameState.playerLastHit || 0) > 400) {
       const enemyRect = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
-      const overlap = playerRect.x < enemyRect.x + enemyRect.w &&
+      const overlap =
+        playerRect.x < enemyRect.x + enemyRect.w &&
         playerRect.x + playerRect.w > enemyRect.x &&
         playerRect.y < enemyRect.y + enemyRect.h &&
         playerRect.y + playerRect.h > enemyRect.y;
@@ -1384,10 +1364,7 @@ function updateGame(delta) {
       if (overlap) {
         gameState.playerLastHit = now;
         gameState.playerHp = Math.max(0, (gameState.playerHp || 0) - 10);
-        // Reducir velocidad del enemigo ligeramente al chocar
         enemy.speed = Math.max(20, enemy.speed * 0.85);
-
-        // Si el jugador muere, detenemos la partida
         if (gameState.playerHp <= 0) {
           stopGame();
           return false;
@@ -1397,13 +1374,14 @@ function updateGame(delta) {
 
     const damage = damageForRarity(gameState.playerCard && gameState.playerCard.rarity);
     gameState.bullets = gameState.bullets.filter(bullet => {
-      const hit = bullet.x > enemy.x && bullet.x < enemy.x + enemy.w && bullet.y > enemy.y && bullet.y < enemy.y + enemy.h;
+      const hit =
+        bullet.x > enemy.x && bullet.x < enemy.x + enemy.w &&
+        bullet.y > enemy.y && bullet.y < enemy.y + enemy.h;
       if (hit) {
         enemy.hp -= damage;
         if (enemy.hp <= 0 && !enemy.dead) {
           enemy.dead = true;
-          const pts = pointsForRarity(enemy.card && enemy.card.rarity);
-          addScore(pts);
+          addScore(pointsForRarity(enemy.card && enemy.card.rarity));
         }
       }
       return !hit;
@@ -1420,14 +1398,12 @@ function renderGame() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Fondo simple
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   gradient.addColorStop(0, '#0b1223');
   gradient.addColorStop(1, '#07111e');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Dibujar jugador
   if (typeof gameState.playerX !== 'number') {
     gameState.playerX = (canvas.width - 40) / 2;
   }
@@ -1440,57 +1416,40 @@ function renderGame() {
     ctx.fillRect(px, py, 44, 44);
   }
 
-  // Barra de vida del jugador
   if (typeof gameState.playerHp === 'number' && typeof gameState.playerMaxHp === 'number' && gameState.playerMaxHp > 0) {
-    const barW = 80;
-    const barH = 8;
+    const barW = 80, barH = 8;
     const barX = Math.max(0, Math.min(canvas.width - barW, px + 22 - barW / 2));
     const barY = py - 16;
     const pct = Math.max(0, Math.min(1, gameState.playerHp / gameState.playerMaxHp));
-
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(barX, barY, barW, barH);
-
     ctx.fillStyle = '#f97316';
     ctx.fillRect(barX, barY, barW * pct, barH);
-
     ctx.strokeStyle = 'rgba(255,255,255,0.4)';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barW, barH);
   }
 
-  // Balas
   ctx.fillStyle = '#facc15';
   gameState.bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 10));
 
-  // Enemigos
   gameState.enemies.forEach(e => {
     const canDrawImage = e.img && e.img.complete && e.imgValid && e.img.naturalWidth > 0;
     if (canDrawImage) {
       ctx.drawImage(e.img, e.x, e.y, e.w, e.h);
     } else {
-      // Si la imagen falla, se dibuja un bloque de color garantizado.
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(e.x, e.y, e.w, e.h);
     }
 
-    // Barra de vida
     if (typeof e.hp === 'number' && typeof e.maxHp === 'number' && e.maxHp > 0) {
-      const barWidth = e.w;
-      const barHeight = 6;
-      const barX = e.x;
-      const barY = e.y - barHeight - 4;
+      const barWidth = e.w, barHeight = 6;
+      const barX = e.x, barY = e.y - barHeight - 4;
       const pct = Math.max(0, Math.min(1, e.hp / e.maxHp));
-
-      // Fondo de barra
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(barX, barY, barWidth, barHeight);
-
-      // Progreso
       ctx.fillStyle = '#22c55e';
       ctx.fillRect(barX, barY, barWidth * pct, barHeight);
-
-      // Borde
       ctx.strokeStyle = 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 1;
       ctx.strokeRect(barX, barY, barWidth, barHeight);
@@ -1513,42 +1472,18 @@ function createEnemy() {
   const x = Math.random() * (canvas.width - size);
   const y = -size - 10;
   const speed = 80 + Math.random() * 60;
-
   const hp = hpForRarity(card && card.rarity);
-  const enemy = {
-    x,
-    y,
-    w: size,
-    h: size,
-    speed,
-    card,
-    hp,
-    maxHp: hp,
-    dead: false,
-    img: null,
-    imgValid: false,
-  };
+
+  const enemy = { x, y, w: size, h: size, speed, card, hp, maxHp: hp, dead: false, img: null, imgValid: false };
 
   if (card && card.image) {
     const img = new Image();
     img.src = card.image;
-    img.onload = () => {
-      enemy.imgValid = true;
-    };
-    img.onerror = () => {
-      enemy.imgValid = false;
-    };
+    img.onload = () => { enemy.imgValid = true; };
+    img.onerror = () => { enemy.imgValid = false; };
     enemy.img = img;
   }
   return enemy;
 }
 
-// Exportar funciones para pruebas o para que `cards.js` las llame
-window.game = {
-  init,
-  onOpenPack,
-  selectPlayerCard,
-  getSelectedCard,
-  startGame,
-  stopGame,
-};
+window.game = { init, onOpenPack, selectPlayerCard, getSelectedCard, startGame, stopGame };
