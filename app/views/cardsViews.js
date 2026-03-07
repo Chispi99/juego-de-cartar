@@ -314,6 +314,19 @@
     infoEl.appendChild(rarityEl);
     infoEl.appendChild(descEl);
 
+    // Botón para seleccionar esta carta como nave en el minijuego
+    if (window.game && typeof window.game.selectPlayerCard === 'function') {
+      const selectBtn = document.createElement('button');
+      selectBtn.className = 'btn select-ship-btn';
+      selectBtn.type = 'button';
+      selectBtn.textContent = 'Usar como nave';
+      selectBtn.addEventListener('click', () => {
+        window.game.selectPlayerCard(card.id);
+        if (document.body.contains(modal)) document.body.removeChild(modal);
+      });
+      infoEl.appendChild(selectBtn);
+    }
+
     // añadir botón de vídeo dentro del modal si existe
     if (card.video) {
       const vidBtn = document.createElement('button');
