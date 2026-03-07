@@ -13,11 +13,11 @@
     { "id": "R2", "name": "Caballero", "rarity": "rare", "description": "Guerrero blindado con alto aguante y disciplina de combate.", "image": "./imagenes/R2.png" },
     { "id": "R3", "name": "Clérigo", "rarity": "rare", "description": "Sanador y soporte con habilidades de protección divina.", "image": "./imagenes/R3.png" },
     { "id": "R4", "name": "Alquimista", "rarity": "rare", "description": "Crea pociones y artefactos que alteran la batalla.", "image": "./imagenes/R4.png" },
-    { "id": "R5", "name": "Herrero", "rarity": "rare", "description": "Forja equipo de calidad superior y mejora armas.", "image": "./imagenes/R5.png" },
+    { "id": "R5", "name": "Herrero", "rarity": "rare", "description": "Forja equipo de calidad superior y mejora armas." },
     { "id": "R6", "name": "Corsario", "rarity": "rare", "description": "Líder de marineros con tácticas de abordaje y saqueo.", "image": "./imagenes/R6.png" },
 
     { "id": "E1", "name": "Dragón Joven", "rarity": "epic", "description": "Criatura elemental con aliento ígneo; fuerza descomunal.", "image": "./imagenes/E1.png" },
-    { "id": "E2", "name": "Hechicera", "rarity": "epic", "description": "Maestra de la magia ofensiva y manipuladora de energías.", "image": "./imagenes/E2.png" },
+    { "id": "E2", "name": "Hechicera", "rarity": "epic", "description": "Maestra de la magia ofensiva y manipuladora de energías." },
     { "id": "E3", "name": "General", "rarity": "epic", "description": "Comandante táctico que mejora el rendimiento del ejército.", "image": "./imagenes/E3.png" },
     { "id": "E4", "name": "La princesita", "rarity": "epic", "description": "Princesa ogro odiada por todos, engaña con cara de inocente pero sus intenciones no lo son tanto.", "image": "./imagenes/laprincesita.png" },
 

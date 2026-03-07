@@ -32,12 +32,18 @@
 
   function pickRarity() {
     const r = Math.random();
-    // diamond is the rarest<br>    if (r < 0.005) return 'diamond';
-    if (r < 0.005) return 'diamond';  // ~0.5% chance
-    if (r < 0.025) return 'legendary';  // ~2% chance
-    if (r < 0.10) return 'epic';
-    if (r < 0.30) return 'rare';
-    return 'common';
+    // Probabilidades por carta (aprox):
+    //  - Diamond: muy raro (0.1%) pero puede salir más de uno en un sobre.
+    //  - Legendary: decente (≈4% por carta → ~1 legendaria cada 5 sobres).
+    //  - Epic: bastante frecuente dentro de lo "raro".
+    //  - Rare: buen balance entre comunes y raras.
+    //  - Common: la mayoría de cartas.
+    
+    if (r < 0.001) return 'diamond';        // 0.1%
+    if (r < 0.041) return 'legendary';     // +4.0% (total 4.1%)
+    if (r < 0.161) return 'epic';          // +12.0% (total 16.1%)
+    if (r < 0.341) return 'rare';          // +18.0% (total 34.1%)
+    return 'common';                       // ~65.9%
   }
 
   function randomFrom(array) {
@@ -56,9 +62,20 @@
     return collection;
   }
 
-  function openPack(count) {
+  function openPack(countOrOpts) {
+    const opts = {
+      count: 5,
+      banner: 'general', // 'general' o 'jeffrey'
+      pity: null, // { general: number, jeffreyMissed: boolean }
+      ...(
+        typeof countOrOpts === 'number'
+          ? { count: countOrOpts }
+          : (typeof countOrOpts === 'object' && countOrOpts !== null ? countOrOpts : {})
+      ),
+    };
+
     const out = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < opts.count; i++) {
       const rarity = pickRarity();
       // Si las cartas del JSON están cargadas, selecciona directamente de ellas
       let pool = [];
@@ -80,8 +97,64 @@
       const picked = randomFrom(pool);
       const fullCard = picked && picked.id ? (allCardsMap[picked.id] || picked) : picked;
       out.push(fullCard);
-      addToCollection(fullCard);
     }
+
+    // Pity system
+    const pity = opts.pity;
+    if (pity && typeof pity === 'object') {
+      const hasDiamond = out.some(c => c && c.rarity && c.rarity.toLowerCase() === 'diamond');
+      const hasJeffrey = out.some(c => c && c.id === 'D2');
+
+      // Banner general: garantizado diamond en 70 si no ha salido antes
+      if (opts.banner === 'general') {
+        if (!hasDiamond) {
+          pity.general = (pity.general || 0) + 1;
+        } else {
+          pity.general = 0;
+        }
+        if (pity.general >= 70) {
+          // Asegurar diamond: reemplazar una carta al azar de menor rareza
+          const candidates = out.filter(c => c && c.rarity && c.rarity.toLowerCase() !== 'diamond');
+          const replaceIndex = candidates.length ? out.indexOf(candidates[Math.floor(Math.random() * candidates.length)]) : 0;
+          const allDiamond = (Object.values(allCardsMap || {}).filter(c => c.rarity === 'diamond'));
+          if (allDiamond.length) {
+            const forced = randomFrom(allDiamond);
+            if (forced) {
+              out[replaceIndex] = forced;
+              addToCollection(forced);
+            }
+          }
+          pity.general = 0;
+        }
+      }
+
+      // Banner Jeffrey: si no toca en la primera, en la segunda va fijo
+      if (opts.banner === 'jeffrey') {
+        if (!hasJeffrey) {
+          if (pity.jeffreyMissed) {
+            // assegurar Jeffrey / Reemplazar una carta cualquiera por D2
+            const allJeffrey = Object.values(allCardsMap || {}).filter(c => c.id === 'D2');
+            if (allJeffrey.length) {
+              const forced = allJeffrey[0];
+              const replaceIndex = Math.floor(Math.random() * out.length);
+              out[replaceIndex] = forced;
+              addToCollection(forced);
+            }
+            pity.jeffreyMissed = false;
+          } else {
+            pity.jeffreyMissed = true;
+          }
+        } else {
+          pity.jeffreyMissed = false;
+        }
+      }
+    }
+
+    // Añadir a colección una vez que se haya aplicado el pity
+    out.forEach(card => {
+      if (card) addToCollection(card);
+    });
+
     return out;
   }
 

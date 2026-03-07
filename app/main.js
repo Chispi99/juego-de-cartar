@@ -5,7 +5,8 @@ const gameState = {
   running: false,
   score: 0,
   coins: 0, // Monedas acumuladas desde partidas anteriores
-  coinsMilestone: 0, // Milestone interno para premiar por cada 1000 puntos
+  coinsMilestone: 0, // Milestone interno para premios grandes (cada 1000 pts)
+  coinsFromScore: 0, // Acumulador para convertir puntos a monedas de forma lineal
   albums: [],
   enemies: [],
   bullets: [],
@@ -16,6 +17,9 @@ const gameState = {
   ctx: null,
   playerImg: null,
   playerCard: null,
+  playerHp: 0,
+  playerMaxHp: 0,
+  playerLastHit: 0,
   onScoreUpdate: null,
 };
 
@@ -27,6 +31,10 @@ function loadCoins() {
 
 function saveCoins() {
   localStorage.setItem('juegoCartasCoins', String(gameState.coins));
+}
+
+function saveBienvenidaUsed() {
+  localStorage.setItem('juegoCartasBienvenidaUsed', gameState.bienvenidaUsed ? 'true' : 'false');
 }
 
 function loadAlbums() {
@@ -99,6 +107,29 @@ function updateCoinDisplay() {
   el.textContent = `Monedas: ${gameState.coins}`;
 }
 
+function updatePityDisplay() {
+  const el = document.getElementById('pityInfo');
+  if (!el) return;
+
+  const banner = document.getElementById('bannerType');
+  const selectedBanner = banner ? banner.value : 'general';
+  const pity = gameState.pity || { general: 0, jeffreyMissed: false };
+
+  if (selectedBanner === 'general') {
+    const remaining = Math.max(0, 70 - (pity.general || 0));
+    el.textContent = `Banner general: faltan ${remaining} tiradas para diamante garantizado.`;
+  } else if (selectedBanner === 'jeffrey') {
+    const status = pity.jeffreyMissed ? 'Asegurado en la próxima tirada' : 'No asegurado (si no sale, la siguiente será garantizada)';
+    el.textContent = `Banner Jeffrey: ${status}.`;
+  } else if (selectedBanner === 'bienvenida') {
+    if (gameState.bienvenidaUsed) {
+      el.textContent = 'Banner Bienvenida ya usado. Selecciona otro banner.';
+    } else {
+      el.textContent = 'Banner Bienvenida: obtén una multi gratis la primera vez que abras un sobre.';
+    }
+  }
+}
+
 function addScore(points) {
   gameState.score += points;
   if (typeof gameState.onScoreUpdate === 'function') gameState.onScoreUpdate(gameState.score);
@@ -106,24 +137,49 @@ function addScore(points) {
 }
 
 function updateCoinsFromScore() {
-  const milestone = Math.floor(gameState.score / 1000);
-  if (milestone <= gameState.coinsMilestone) return;
-  const delta = milestone - gameState.coinsMilestone;
-  gameState.coins += delta * 100;
-  gameState.coinsMilestone = milestone;
+  // Convertimos puntaje a monedas:
+  // Cada 100 puntos da 20 monedas, proporcionalmente.
+  // Ej: 10 puntos = 2 monedas, 55 puntos = 11 monedas.
+  const totalCoinsFromScore = Math.floor(gameState.score * 0.2);
+
+  const delta = totalCoinsFromScore - (gameState.coinsFromScore || 0);
+  if (delta <= 0) return;
+
+  gameState.coins += delta;
+  gameState.coinsFromScore = totalCoinsFromScore;
+  gameState.coinsMilestone = Math.floor(gameState.score / 100); // Mantener referencia (cada 100 puntos)
+
   saveCoins();
   updateCoinDisplay();
 }
 
 function pointsForRarity(rarity) {
   switch ((rarity || '').toLowerCase()) {
-    case 'diamond': return 500;
-    case 'legendary': return 200;
-    case 'epic': return 100;
-    case 'rare': return 50;
+    case 'diamond': return 120;
+    case 'legendary': return 70;
+    case 'epic': return 50;
+    case 'rare': return 30;
     case 'common': return 10;
     default: return 10;
   }
+}
+
+function hpForRarity(rarity) {
+  switch ((rarity || '').toLowerCase()) {
+    case 'diamond': return 500;
+    case 'legendary': return 400;
+    case 'epic': return 300;
+    case 'rare': return 200;
+    case 'common': return 100;
+    default: return 100;
+  }
+}
+
+function damageForRarity(rarity) {
+  // El daño se escala proporcionalmente a la rareza de la carta nave.
+  // Usamos la misma progresión que `hpForRarity` para tener una relación clara.
+  const hp = hpForRarity(rarity);
+  return Math.max(10, Math.floor(hp * 0.2));
 }
 
 function getSelectedCard() {
@@ -165,6 +221,15 @@ function init() {
   loadCoins();
   loadAlbums();
 
+  // Estado del banner de bienvenida (una sola multi gratis)
+  gameState.bienvenidaUsed = localStorage.getItem('juegoCartasBienvenidaUsed') === 'true';
+
+  // Contadores de pity para banners
+  gameState.pity = {
+    general: 0,
+    jeffreyMissed: false,
+  };
+
   // Cabecera y botón para barajar/repartir
   const header = document.createElement('h1');
   header.textContent = 'Juego de Cartas';
@@ -175,6 +240,7 @@ function init() {
   coinCounter.className = 'coin-counter';
   app.appendChild(coinCounter);
   updateCoinDisplay();
+  updatePityDisplay();
 
   // Navegación: botones para ir a "Abrir sobres", "Colección" o "Jugar"
   const nav = document.createElement('div');
@@ -217,24 +283,51 @@ function init() {
   const controls = document.createElement('div');
   controls.className = 'controls';
 
-  const packLabel = document.createElement('label');
-  packLabel.textContent = 'Tamaño del sobre:';
-  const packInput = document.createElement('input');
-  packInput.type = 'number';
-  packInput.min = '1';
-  packInput.value = '5';
-  packInput.id = 'packSize';
+  const bannerLabel = document.createElement('label');
+  bannerLabel.textContent = 'Banner:';
+  const bannerSelect = document.createElement('select');
+  bannerSelect.id = 'bannerType';
+  const optGeneral = document.createElement('option');
+  optGeneral.value = 'general';
+  optGeneral.textContent = 'General';
+  const optJeffrey = document.createElement('option');
+  optJeffrey.value = 'jeffrey';
+  optJeffrey.textContent = 'Promo Jeffrey';
+  const optBienvenida = document.createElement('option');
+  optBienvenida.value = 'bienvenida';
+  optBienvenida.textContent = 'Bienvenida (¡una multi gratis!)';
 
-  const openBtn = document.createElement('button');
-  openBtn.className = 'btn';
-  openBtn.textContent = 'Abrir sobre';
-  openBtn.addEventListener('click', onOpenPack);
+  bannerSelect.appendChild(optGeneral);
+  bannerSelect.appendChild(optJeffrey);
+  bannerSelect.appendChild(optBienvenida);
+  bannerSelect.addEventListener('change', updatePityDisplay);
+
+  const singleBtn = document.createElement('button');
+  singleBtn.id = 'openSingleBtn';
+  singleBtn.className = 'btn';
+  singleBtn.textContent = '1 sobre (5 cartas) - 160 monedas';
+  singleBtn.addEventListener('click', () => onOpenPack({ count: 5, cost: 160 }));
+
+  const multiBtn = document.createElement('button');
+  multiBtn.id = 'openMultiBtn';
+  multiBtn.className = 'btn';
+  multiBtn.textContent = 'Multi (50 cartas) - 1600 monedas';
+  multiBtn.addEventListener('click', () => onOpenPack({ count: 50, cost: 1600 }));
+
   // Desactivar por defecto hasta que las cartas JSON se carguen
-  openBtn.disabled = true;
+  singleBtn.disabled = true;
+  multiBtn.disabled = true;
 
-  controls.appendChild(packLabel);
-  controls.appendChild(packInput);
-  controls.appendChild(openBtn);
+  const pityInfo = document.createElement('div');
+  pityInfo.id = 'pityInfo';
+  pityInfo.className = 'pity-info';
+  pityInfo.textContent = '';
+
+  controls.appendChild(bannerLabel);
+  controls.appendChild(bannerSelect);
+  controls.appendChild(singleBtn);
+  controls.appendChild(multiBtn);
+  controls.appendChild(pityInfo);
 
   // Área donde se mostrarán las cartas del sobre (izquierda)
   const board = document.createElement('div');
@@ -308,17 +401,45 @@ function init() {
   // Mostrar solo la sección de abrir sobres al iniciar
   showSection('left');
 
-  // Habilitar botón cuando la carga de cartas finalice
+  // Botón fijo para reiniciar el juego (borrar progreso)
+  const resetBtn = document.createElement('button');
+  resetBtn.id = 'resetGameBtn';
+  resetBtn.className = 'btn reset-btn';
+  resetBtn.textContent = 'Reiniciar juego';
+  resetBtn.style.position = 'fixed';
+  resetBtn.style.bottom = '1rem';
+  resetBtn.style.right = '1rem';
+  resetBtn.style.zIndex = '999';
+  resetBtn.addEventListener('click', resetGame);
+  document.body.appendChild(resetBtn);
+
+  // Habilitar botones cuando la carga de cartas finalice
+  const enablePackButtons = () => {
+    const singleBtn = document.getElementById('openSingleBtn');
+    const multiBtn = document.getElementById('openMultiBtn');
+    if (singleBtn) singleBtn.disabled = false;
+    if (multiBtn) multiBtn.disabled = false;
+  };
+
   if (window.cards && window.cards.ready && typeof window.cards.ready.then === 'function') {
     window.cards.ready.then(() => {
-      openBtn.disabled = false;
+      // Si no hay monedas al inicio, damos un pequeño saldo inicial para poder abrir el primer sobre.
+      const coll = window.cards.getCollection ? window.cards.getCollection() : {};
+      const hasCards = coll && Object.keys(coll).length > 0;
+      if (!hasCards && gameState.coins <= 0) {
+        gameState.coins = 160;
+        saveCoins();
+        updateCoinDisplay();
+      }
+
+      enablePackButtons();
     }).catch(() => {
       // Si falla la carga, dejarlo deshabilitado y mostrar aviso en consola
       console.error('No se pudieron cargar las cartas desde JSON.');
     });
   } else {
     // Si no existe la promesa, habilitar por seguridad
-    openBtn.disabled = false;
+    enablePackButtons();
   }
 }
 
@@ -346,9 +467,23 @@ function showSection(which) {
   if (btnPlay) btnPlay.classList.toggle('active', which === 'play');
 }
 
-function onOpenPack() {
+function onOpenPack(opts = {}) {
   const board = document.getElementById('board');
-  const n = parseInt(document.getElementById('packSize').value, 10) || 5;
+  const banner = document.getElementById('bannerType') ? document.getElementById('bannerType').value : 'general';
+
+  let count = opts.count || 5;
+  let cost = opts.cost || 160;
+
+  // Banner bienvenida: una sola multi gratis.
+  if (banner === 'bienvenida' && !gameState.bienvenidaUsed) {
+    count = 50;
+    cost = 0;
+  }
+
+  if (gameState.coins < cost) {
+    alert(`No tienes suficientes monedas. Necesitas ${cost} monedas.`);
+    return;
+  }
 
   if (!window.cards || typeof window.cards.openPack !== 'function') {
     const err = document.createElement('p');
@@ -358,8 +493,11 @@ function onOpenPack() {
     return;
   }
 
-  const opened = window.cards.openPack(n);
-  
+  gameState.coins -= cost;
+  updateCoinDisplay();
+
+  const opened = window.cards.openPack({ count, banner, pity: gameState.pity });
+
   // Usar cardsViews para renderizar las cartas
   if (window.cardsView && window.cardsView.renderCardSet) {
     window.cardsView.renderCardSet(opened, board);
@@ -401,7 +539,20 @@ function onOpenPack() {
     });
   }
 
+  if (banner === 'bienvenida' && !gameState.bienvenidaUsed) {
+    gameState.bienvenidaUsed = true;
+    saveBienvenidaUsed();
+    // Quitar la opción para que no se pueda reutilizar
+    const bannerSelect = document.getElementById('bannerType');
+    if (bannerSelect) {
+      const opt = bannerSelect.querySelector('option[value="bienvenida"]');
+      if (opt) opt.remove();
+      bannerSelect.value = 'general';
+    }
+  }
+
   updateCollectionDisplay();
+  updatePityDisplay();
 }
 
 function setCollectionTab(tab) {
@@ -1092,13 +1243,26 @@ function startGame() {
   const selected = getSelectedCard();
   if (!selected) return;
 
+  // Guardar monedas al inicio para mostrar ganancia al terminar
+  gameState.startCoins = gameState.coins;
+
   gameState.running = true;
+  // Resetear controles de teclado para evitar que una tecla quede "pegada" entre partidas.
+  gameState.keys = { left: false, right: false, fire: false };
   gameState.score = 0;
   gameState.coinsMilestone = 0;
+  gameState.coinsFromScore = 0;
   gameState.enemies = [];
   gameState.bullets = [];
   gameState.lastFrame = performance.now();
   gameState.spawnTimer = 0;
+
+  // Vida de la carta nave
+  const selectedCard = getSelectedCard();
+  const playerHp = hpForRarity(selectedCard && selectedCard.rarity);
+  gameState.playerMaxHp = playerHp;
+  gameState.playerHp = playerHp;
+  gameState.playerLastHit = 0;
 
   if (typeof gameState.onScoreUpdate === 'function') gameState.onScoreUpdate(gameState.score);
   updateCoinsFromScore();
@@ -1110,26 +1274,64 @@ function startGame() {
 }
 
 function stopGame() {
+  if (!gameState.running) return;
+
   gameState.running = false;
   if (gameState.rafId) cancelAnimationFrame(gameState.rafId);
   gameState.rafId = null;
+
+  // Mostrar resumen de monedas ganadas en esta partida
+  const start = typeof gameState.startCoins === 'number' ? gameState.startCoins : 0;
+  const gained = Math.max(0, (gameState.coins || 0) - start);
+  alert(`Partida finalizada. Has ganado ${gained} monedas.`);
+
   updatePlaySelectionUI();
+}
+
+function resetGame() {
+  if (!confirm('¿Estás seguro? Esto reiniciará todo el progreso y recargará la página.')) return;
+  localStorage.removeItem('juegoCartasCoins');
+  localStorage.removeItem('juegoCartasAlbums');
+  localStorage.removeItem('juegoCartasBienvenidaUsed');
+  window.location.reload();
 }
 
 function gameLoop(timestamp) {
   if (!gameState.running) return;
-  const delta = Math.min(0.05, (timestamp - gameState.lastFrame) / 1000);
+
+  // A veces el timestamp puede ser igual o menor que el último frame (p.ej. al volver de otra pestaña),
+  // lo cual podría generar delta <= 0 y detener el movimiento, dando la sensación de "pillado".
+  const rawDelta = (timestamp - gameState.lastFrame) / 1000;
+  const delta = Math.min(0.05, Math.max(0, rawDelta));
   gameState.lastFrame = timestamp;
 
-  updateGame(delta);
-  renderGame();
+  if (delta <= 0) {
+    // No hay tiempo transcurrido válido, seguir al siguiente frame.
+    gameState.rafId = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  try {
+    updateGame(delta);
+    renderGame();
+  } catch (err) {
+    console.error('Error en el bucle de juego:', err);
+    stopGame();
+    return;
+  }
 
   gameState.rafId = requestAnimationFrame(gameLoop);
 }
 
 function updateGame(delta) {
   const canvas = gameState.canvas;
-  if (!canvas) return;
+  const ctx = gameState.ctx;
+  // Si por alguna razón el canvas se elimina (cambio de sección o recarga parcial), detenemos el juego
+  // para evitar bucles infinitos y consumo de CPU.
+  if (!canvas || !ctx || !canvas.isConnected) {
+    stopGame();
+    return;
+  }
 
   const speed = 280;
   if (gameState.keys.left) gameState.playerX = Math.max(0, gameState.playerX - speed * delta);
@@ -1158,23 +1360,56 @@ function updateGame(delta) {
     e.y += e.speed * delta;
   });
 
-  // Colisiones
+  // Colisiones: balas vs enemigos + jugador vs enemigos
+  const now = performance.now();
+  const playerRect = {
+    x: gameState.playerX || 0,
+    y: canvas.height - 60,
+    w: 44,
+    h: 44,
+  };
+
   gameState.enemies = gameState.enemies.filter(enemy => {
     // Off-screen
     if (enemy.y > canvas.height + 40) return false;
 
-    let alive = true;
+    // Impacto con la nave del jugador
+    if (now - (gameState.playerLastHit || 0) > 400) {
+      const enemyRect = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
+      const overlap = playerRect.x < enemyRect.x + enemyRect.w &&
+        playerRect.x + playerRect.w > enemyRect.x &&
+        playerRect.y < enemyRect.y + enemyRect.h &&
+        playerRect.y + playerRect.h > enemyRect.y;
+
+      if (overlap) {
+        gameState.playerLastHit = now;
+        gameState.playerHp = Math.max(0, (gameState.playerHp || 0) - 10);
+        // Reducir velocidad del enemigo ligeramente al chocar
+        enemy.speed = Math.max(20, enemy.speed * 0.85);
+
+        // Si el jugador muere, detenemos la partida
+        if (gameState.playerHp <= 0) {
+          stopGame();
+          return false;
+        }
+      }
+    }
+
+    const damage = damageForRarity(gameState.playerCard && gameState.playerCard.rarity);
     gameState.bullets = gameState.bullets.filter(bullet => {
       const hit = bullet.x > enemy.x && bullet.x < enemy.x + enemy.w && bullet.y > enemy.y && bullet.y < enemy.y + enemy.h;
       if (hit) {
-        alive = false;
-        const pts = pointsForRarity(enemy.card && enemy.card.rarity);
-        addScore(pts);
+        enemy.hp -= damage;
+        if (enemy.hp <= 0 && !enemy.dead) {
+          enemy.dead = true;
+          const pts = pointsForRarity(enemy.card && enemy.card.rarity);
+          addScore(pts);
+        }
       }
       return !hit;
     });
 
-    return alive;
+    return enemy.hp > 0;
   });
 }
 
@@ -1205,23 +1440,69 @@ function renderGame() {
     ctx.fillRect(px, py, 44, 44);
   }
 
+  // Barra de vida del jugador
+  if (typeof gameState.playerHp === 'number' && typeof gameState.playerMaxHp === 'number' && gameState.playerMaxHp > 0) {
+    const barW = 80;
+    const barH = 8;
+    const barX = Math.max(0, Math.min(canvas.width - barW, px + 22 - barW / 2));
+    const barY = py - 16;
+    const pct = Math.max(0, Math.min(1, gameState.playerHp / gameState.playerMaxHp));
+
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(barX, barY, barW * pct, barH);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+  }
+
   // Balas
   ctx.fillStyle = '#facc15';
   gameState.bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 10));
 
   // Enemigos
   gameState.enemies.forEach(e => {
-    if (e.img && e.img.complete) {
+    const canDrawImage = e.img && e.img.complete && e.imgValid && e.img.naturalWidth > 0;
+    if (canDrawImage) {
       ctx.drawImage(e.img, e.x, e.y, e.w, e.h);
     } else {
+      // Si la imagen falla, se dibuja un bloque de color garantizado.
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(e.x, e.y, e.w, e.h);
+    }
+
+    // Barra de vida
+    if (typeof e.hp === 'number' && typeof e.maxHp === 'number' && e.maxHp > 0) {
+      const barWidth = e.w;
+      const barHeight = 6;
+      const barX = e.x;
+      const barY = e.y - barHeight - 4;
+      const pct = Math.max(0, Math.min(1, e.hp / e.maxHp));
+
+      // Fondo de barra
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+
+      // Progreso
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(barX, barY, barWidth * pct, barHeight);
+
+      // Borde
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, barWidth, barHeight);
     }
   });
 }
 
 function createEnemy() {
   if (!window.cards) return null;
+  const canvas = gameState.canvas;
+  if (!canvas || !canvas.width) return null;
+
   const coll = window.cards.getCollection();
   const entries = Object.values(coll);
   if (entries.length === 0) return null;
@@ -1229,14 +1510,34 @@ function createEnemy() {
   const pick = entries[Math.floor(Math.random() * entries.length)];
   const card = pick.card;
   const size = 38 + Math.random() * 24;
-  const x = Math.random() * (gameState.canvas.width - size);
+  const x = Math.random() * (canvas.width - size);
   const y = -size - 10;
   const speed = 80 + Math.random() * 60;
 
-  const enemy = { x, y, w: size, h: size, speed, card };
+  const hp = hpForRarity(card && card.rarity);
+  const enemy = {
+    x,
+    y,
+    w: size,
+    h: size,
+    speed,
+    card,
+    hp,
+    maxHp: hp,
+    dead: false,
+    img: null,
+    imgValid: false,
+  };
+
   if (card && card.image) {
     const img = new Image();
     img.src = card.image;
+    img.onload = () => {
+      enemy.imgValid = true;
+    };
+    img.onerror = () => {
+      enemy.imgValid = false;
+    };
     enemy.img = img;
   }
   return enemy;
