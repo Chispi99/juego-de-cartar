@@ -1,0 +1,29 @@
+{
+  "cards": [
+    { "id": "C1", "name": "Linmán", "rarity": "common", "description": "Trabajador explotado de la empresa Carles Technology.", "image": "./imagenes/Linmán.png" },
+    { "id": "C2", "name": "Ángelo", "rarity": "common", "description": "Detective privado que investiga a Caján Carles", "image": "./imagenes/Ángelo.png" },
+    { "id": "C3", "name": "Alva", "rarity": "common", "description": "Joven yonki que frecuenta el casino clandestino", "image": "./imagenes/Alva.png" },
+    { "id": "C4", "name": "Lili", "rarity": "common", "description": "Joven chica sirvienta de Caján Carles", "image": "./imagenes/Lili.png" },
+    { "id": "C5", "name": "Carpintero", "rarity": "common", "description": "Construye y repara estructuras; apoyo útil en campañas.", "image": "./imagenes/C5.png" },
+    { "id": "C6", "name": "Mensajero", "rarity": "common", "description": "Rápido mensajero que conecta puntos del reino.", "image": "./imagenes/C6.png" },
+    { "id": "C7", "name": "Pícaro", "rarity": "common", "description": "Astuto y escurridizo, experto en aperturas y robos.", "image": "./imagenes/C7.png" },
+    { "id": "C8", "name": "Aprendiz", "rarity": "common", "description": "Estudiante de artes marciales o magia, con potencial de crecimiento.", "image": "./imagenes/C8.png" },
+
+    { "id": "R1", "name": "Caján", "rarity": "rare", "description": "Jefe tirano de la empresa Carles Technology.", "image": "./imagenes/Caján.png" },
+    { "id": "R2", "name": "Caballero", "rarity": "rare", "description": "Guerrero blindado con alto aguante y disciplina de combate.", "image": "./imagenes/R2.png" },
+    { "id": "R3", "name": "Clérigo", "rarity": "rare", "description": "Sanador y soporte con habilidades de protección divina.", "image": "./imagenes/R3.png" },
+    { "id": "R4", "name": "Alquimista", "rarity": "rare", "description": "Crea pociones y artefactos que alteran la batalla.", "image": "./imagenes/R4.png" },
+    { "id": "R5", "name": "Herrero", "rarity": "rare", "description": "Forja equipo de calidad superior y mejora armas.", "image": "./imagenes/R5.png" },
+    { "id": "R6", "name": "Corsario", "rarity": "rare", "description": "Líder de marineros con tácticas de abordaje y saqueo.", "image": "./imagenes/R6.png" },
+
+    { "id": "E1", "name": "Dragón Joven", "rarity": "epic", "description": "Criatura elemental con aliento ígneo; fuerza descomunal.", "image": "./imagenes/E1.png" },
+    { "id": "E2", "name": "Hechicera", "rarity": "epic", "description": "Maestra de la magia ofensiva y manipuladora de energías.", "image": "./imagenes/E2.png" },
+    { "id": "E3", "name": "General", "rarity": "epic", "description": "Comandante táctico que mejora el rendimiento del ejército.", "image": "./imagenes/E3.png" },
+    { "id": "E4", "name": "La princesita", "rarity": "epic", "description": "Princesa ogro odiada por todos, engaña con cara de inocente pero sus intenciones no lo son tanto.", "image": "./imagenes/laprincesita.png" },
+
+    { "id": "L1", "name": "Perro Sanche", "rarity": "legendary", "description": "Perro mitológico famoso por su poder para manipular, fue un gran tirano de su pueblo natal.", "image": "./imagenes/perrosanche.png" },
+    { "id": "L2", "name": "Card Invencible", "rarity": "legendary", "description": "Carta que contiene un multiverso de los mayores gambleadores de la galaxia.", "image": "./imagenes/cardInvencible.png" },
+    { "id": "D1", "name": "Starving for light", "rarity": "diamond", "description": "Carta promocional de la novela starving for light, muy chula así que leerla en wattpad.", "image": "./imagenes/starving for live.png"},
+    { "id": "D2", "name": "Jeffrey Epstein", "rarity": "diamond", "description": "Rico magnate dueño de una isla donde viven muchos nenos", "image": "./imagenes/Jeffrey epstein.png", "video": "./Video/Epstein -.- 1.mp4" }
+  ]
+}
