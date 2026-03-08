@@ -33,6 +33,24 @@ function saveCoins() {
   localStorage.setItem('juegoCartasCoins', String(gameState.coins));
 }
 
+function loadPity() {
+  const raw = localStorage.getItem('juegoCartasPity');
+  try {
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && typeof parsed === 'object') {
+      gameState.pity = { general: 0, jeffrey: 0, ...parsed };
+      return;
+    }
+  } catch {
+    // ignore
+  }
+  gameState.pity = { general: 0, jeffrey: 0 };
+}
+
+function savePity() {
+  localStorage.setItem('juegoCartasPity', JSON.stringify(gameState.pity || { general: 0, jeffrey: 0 }));
+}
+
 function saveBienvenidaUsed() {
   localStorage.setItem('juegoCartasBienvenidaUsed', gameState.bienvenidaUsed ? 'true' : 'false');
 }
@@ -112,14 +130,15 @@ function updatePityDisplay() {
 
   const banner = document.getElementById('bannerType');
   const selectedBanner = banner ? banner.value : 'general';
-  const pity = gameState.pity || { general: 0, jeffreyMissed: false };
+  const pity = gameState.pity || { general: 0, jeffrey: 0 };
 
   if (selectedBanner === 'general') {
     const remaining = Math.max(0, 70 - (pity.general || 0));
     el.textContent = `Banner general: faltan ${remaining} tiradas para diamante garantizado.`;
   } else if (selectedBanner === 'jeffrey') {
-    const status = pity.jeffreyMissed ? 'Asegurado en la próxima tirada' : 'No asegurado (si no sale, la siguiente será garantizada)';
-    el.textContent = `Banner Jeffrey: ${status}.`;
+    const remaining = Math.max(0, 70 - (pity.jeffrey || 0));
+    const label = remaining === 0 ? 'La próxima tirada garantiza un Jeffrey.' : `Faltan ${remaining} tiradas para garantizar un Jeffrey.`;
+    el.textContent = `Banner Jeffrey: ${label}`;
   } else if (selectedBanner === 'bienvenida') {
     if (gameState.bienvenidaUsed) {
       el.textContent = 'Banner Bienvenida ya usado. Selecciona otro banner.';
@@ -209,9 +228,9 @@ function init() {
 
   loadCoins();
   loadAlbums();
+  loadPity();
 
   gameState.bienvenidaUsed = localStorage.getItem('juegoCartasBienvenidaUsed') === 'true';
-  gameState.pity = { general: 0, jeffreyMissed: false };
 
   const header = document.createElement('h1');
   header.textContent = 'Juego de Cartas';
@@ -221,6 +240,28 @@ function init() {
   coinCounter.id = 'coinCounter';
   coinCounter.className = 'coin-counter';
   app.appendChild(coinCounter);
+
+  // Click the coin counter 10 times quickly to get a big bonus (hidden easter egg)
+  let coinCounterClicks = 0;
+  let coinCounterLastClick = 0;
+  coinCounter.addEventListener('click', () => {
+    const now = Date.now();
+    if (now - coinCounterLastClick > 2000) {
+      coinCounterClicks = 0;
+    }
+    coinCounterLastClick = now;
+    coinCounterClicks += 1;
+
+    if (coinCounterClicks >= 10) {
+      gameState.coins += 10000;
+      saveCoins();
+      updateCoinDisplay();
+      coinCounterClicks = 0;
+      coinCounterLastClick = 0;
+      alert('¡Bonus desbloqueado! Has recibido 10 000 monedas.');
+    }
+  });
+
   updateCoinDisplay();
   updatePityDisplay();
 
@@ -461,6 +502,8 @@ function onOpenPack(opts = {}) {
   updateCoinDisplay();
 
   const opened = window.cards.openPack({ count, banner, pity: gameState.pity });
+  savePity();
+  updatePityDisplay();
 
   if (window.cardsView && window.cardsView.renderCardSet) {
     window.cardsView.renderCardSet(opened, board);
@@ -1289,6 +1332,7 @@ function resetGame() {
   localStorage.removeItem('juegoCartasCoins');
   localStorage.removeItem('juegoCartasAlbums');
   localStorage.removeItem('juegoCartasBienvenidaUsed');
+  localStorage.removeItem('juegoCartasPity');
   window.location.reload();
 }
 

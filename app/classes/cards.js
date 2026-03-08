@@ -66,7 +66,7 @@
     const opts = {
       count: 5,
       banner: 'general', // 'general' o 'jeffrey'
-      pity: null, // { general: number, jeffreyMissed: boolean }
+      pity: null, // { general: number, jeffrey: number }
       ...(
         typeof countOrOpts === 'number'
           ? { count: countOrOpts }
@@ -128,24 +128,24 @@
         }
       }
 
-      // Banner Jeffrey: si no toca en la primera, en la segunda va fijo
+      // Banner Jeffrey: si no sale Jeffrey, se cuenta para un pity de 70 tiradas.
       if (opts.banner === 'jeffrey') {
         if (!hasJeffrey) {
-          if (pity.jeffreyMissed) {
-            // assegurar Jeffrey / Reemplazar una carta cualquiera por D2
-            const allJeffrey = Object.values(allCardsMap || {}).filter(c => c.id === 'D2');
-            if (allJeffrey.length) {
-              const forced = allJeffrey[0];
-              const replaceIndex = Math.floor(Math.random() * out.length);
-              out[replaceIndex] = forced;
-              addToCollection(forced);
-            }
-            pity.jeffreyMissed = false;
-          } else {
-            pity.jeffreyMissed = true;
-          }
+          pity.jeffrey = (pity.jeffrey || 0) + 1;
         } else {
-          pity.jeffreyMissed = false;
+          pity.jeffrey = 0;
+        }
+
+        if ((pity.jeffrey || 0) >= 70) {
+          // Garantizar al menos un Jeffrey en el paquete (reemplazando aleatoriamente una carta)
+          const allJeffrey = Object.values(allCardsMap || {}).filter(c => c.id === 'D2');
+          if (allJeffrey.length) {
+            const forced = allJeffrey[0];
+            const replaceIndex = Math.floor(Math.random() * out.length);
+            out[replaceIndex] = forced;
+            addToCollection(forced);
+          }
+          pity.jeffrey = 0;
         }
       }
     }
