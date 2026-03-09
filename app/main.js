@@ -1,4 +1,3 @@
-// main.js - esqueleto inicial para el juego de cartas
 
 const gameState = {
   selectedCardId: null,
@@ -42,7 +41,7 @@ function loadPity() {
       return;
     }
   } catch {
-    // ignore
+  
   }
   gameState.pity = { general: 0, jeffrey: 0 };
 }
@@ -241,7 +240,6 @@ function init() {
   coinCounter.className = 'coin-counter';
   app.appendChild(coinCounter);
 
-  // Click the coin counter 10 times quickly to get a big bonus (hidden easter egg)
   let coinCounterClicks = 0;
   let coinCounterLastClick = 0;
   coinCounter.addEventListener('click', () => {
@@ -656,27 +654,24 @@ function renderAlbumsSection() {
   container.appendChild(list);
 }
 
-// ── Abre el álbum como overlay de pantalla completa ──
+
 function openAlbumView(albumId) {
   const album = getAlbumById(albumId);
   if (!album) return;
 
-  // Eliminar overlay previo si existe
   const prev = document.getElementById('albumOverlay');
   if (prev) prev.remove();
 
-  // Crear overlay
+
   const overlay = document.createElement('div');
   overlay.id = 'albumOverlay';
   overlay.className = 'album-fullscreen-overlay';
   overlay.style.setProperty('--album-bg', album.background || '#070b1a');
 
-  // Capa de fondo decorativa
   const bgLayer = document.createElement('div');
   bgLayer.className = 'album-bg-layer';
   overlay.appendChild(bgLayer);
 
-  // Header
   const header = document.createElement('div');
   header.className = 'album-fs-header';
 
@@ -724,7 +719,6 @@ function openAlbumView(albumId) {
   header.appendChild(headerActions);
   overlay.appendChild(header);
 
-  // Tabs
   const tabBar = document.createElement('div');
   tabBar.className = 'album-fs-tabs';
 
@@ -742,7 +736,6 @@ function openAlbumView(albumId) {
   tabBar.appendChild(tabBg);
   overlay.appendChild(tabBar);
 
-  // Contenido
   const content = document.createElement('div');
   content.id = 'albumFsContent';
   content.className = 'album-fs-content';
@@ -758,17 +751,14 @@ function openAlbumView(albumId) {
   tabCards.addEventListener('click', () => setTab('cards'));
   tabBg.addEventListener('click', () => setTab('background'));
 
-  // Montar en body y animar
   document.body.appendChild(overlay);
 
-  // Bloquear scroll del body
   document.body.style.overflow = 'hidden';
 
-  // Render inicial
   setTab('cards');
 }
 
-// ── Renderiza el contenido de cada tab dentro del overlay ──
+
 function renderFsTab(tab, album, content, overlay) {
   content.innerHTML = '';
 
